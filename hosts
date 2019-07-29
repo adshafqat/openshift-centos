@@ -1,0 +1,6 @@
+[root@master openshift-ansible]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+172.16.8.26 master.172.16.8.26.xip.io console console.52.151.118.150.xip.io
+172.16.8.27 infra.172.16.8.27.xip.io apps apps.52.151.118.150.xip.io
