@@ -1,0 +1,933 @@
+172.16.8.26 ocp-master master.172.16.8.26.xip.io
+172.16.8.27 ocp-infra infra.172.16.8.27.xip.io
+172.16.8.28 ocp-worker1 worker1.172.16.8.28.xip.io
+172.16.8.29 ocp-worker2 worker2.172.16.8.29.xip.io
+
+ashafqat
+Zahran786123$
+
+hostnamectl set-hostname worker2.172.16.8.29.xip.io
+
+[adeelshafqat@master ~]$ sudu su
+[root@master openshift-centos]# cd /root
+[root@master ~]# ls
+anaconda-ks.cfg  original-ks.cfg
+[root@master ~]# cd .ssh
+[root@master .ssh]# ls
+authorized_keys  known_hosts
+[root@master .ssh]# ssh-keygen -t rsa
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:WUdZOP6CXTl161OHg5C0JnfG9lHu28/dHYv+6pem7xo root@master.172.16.8.26.xip.io
+The key's randomart image is:
++---[RSA 2048]----+
+|         ....+. .|
+|          o++  oo|
+|        . =o*o.++|
+|         * =o.*+o|
+|        S  o ooo+|
+|          . o .oo|
+|             E o+|
+|              o=B|
+|            oBX=*|
++----[SHA256]-----+
+[root@master .ssh]# ls
+authorized_keys  id_rsa  id_rsa.pub  known_hosts
+[root@master .ssh]# vi id_rsa.pub 
+[root@master .ssh]# ls
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDOeXoYKhfLqIqalKSW00ZhniHPOsmvlpkqj2XxkjRLwG4lCJwajhq+UtUeU08X/2/4dwWg5wYfb3ox0iu/S47Gm5WVhkA/mjAyJatWK8+wKYfMk/wvAH+6KJBvAHpq8xHXNRb84ffn4KPMrT2HQT0szjsEBjUUsdgEkSi4FSWInEGUdYB97tcCpI3jmTFfAx0wqw1AHMXniEJgAVtGIs1CPGE+pwNKEgnfxO9TapmY8HJNAYPxV5a+71vOQUT/RAcDzG+PZhZo9RfXfTqvCEFFFAvWbRbgSCt5bJDtPH7lNFLq/qem+CCa0eEqR9EekOEtSbVwqJ3Wy88bQejGyj9x root@master.172.16.8.26.xip.io
+
+
+[adeelshafqat@infra ~]$ sudo su
+[root@infra adeelshafqat]# cd /root/.ssh
+[root@infra .ssh]# ls
+authorized_keys
+[root@infra .ssh]# vi authorized_keys 
+[root@infra .ssh]# 
+
+sudo systemctl restart sshd
+
+
+
+[root@master adeelshafqat]# ls
+openshift-centos
+[root@master adeelshafqat]# cd /root/
+git clone https://github.com/openshift/openshift-ansible.git -b release-3.11 --depth=1
+
+Cd openshift-ansible
+
+[root@master openshift-ansible]# wget https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz
+[root@master openshift-ansible]# tar -xvf openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz 
+
+[root@master openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit]# export PATH=$PATH:/root/openshift-centos/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit
+
+
+In /etc/sysconfig/network-scripts/ifcfg-eth0 (CentOS)
+There is a flag NM_CONTROLLED=no
+Set it to yes in all nodes, reboot all nodes and run the Ansible script again. 
+ 
+
+
+
+mkdir -p /etc/origin/master/
+touch /etc/origin/master/htpasswd
+
+Make sure this file is there, other wise master will fail. If its not there create is using vi command
+
+
+[root@master openshift-ansible]# ansible-playbook -i inventory.ini playbooks/prerequisites.yml
+
+
+[root@master openshift-ansible]# ansible-playbook -i inventory.ini playbooks/deploy_cluster.yml
+
+ [root@master openshift-ansible]# ansible-playbook -i inventory.ini playbooks/adhoc/uninstall.yml
+ 
+htpasswd -b /etc/origin/master/htpasswd admin admin123
+oc adm policy add-cluster-role-to-user cluster-admin admin
+
+
+
+
+
+[root@master openshift-ansible]# vi inventory.ini 
+
+[OSEv3:children]
+masters
+nodes
+etcd
+
+[masters]
+master.172.16.8.26.xip.io openshift_ip=172.16.8.26 openshift_schedulable=true
+
+
+[etcd]
+master.172.16.8.26.xip.io openshift_ip=172.16.8.26
+
+[nodes]
+master.172.16.8.26.xip.io openshift_ip=172.16.8.26 openshift_node_group_name='node-config-master'
+worker1.172.16.8.28.xip.io openshift_ip=172.16.8.28 openshift_node_group_name='node-config-compute'
+worker1.172.16.8.29.xip.io openshift_ip=172.16.8.29 openshift_node_group_name='node-config-compute'
+infra.172.16.8.27.xip.io openshift_ip=172.16.8.27 openshift_node_group_name='node-config-infra'
+
+
+[OSEv3:vars]
+openshift_additional_repos=[{'id': 'centos-paas', 'name': 'centos-paas', 'baseurl' :'https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin311',  'gpgcheck' :'0', 'enabled' :'1'}]
+
+ansible_ssh_user=root
+enable_excluders=False
+enable_docker_excluder=False
+ansible_service_broker_install=False
+
+containerized=True
+os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
+openshift_disable_check=disk_availability,docker_storage,memory_availability,docker_image_availability
+
+deployment_type=origin
+openshift_deployment_type=origin
+
+template_service_broker_selector={"region":"infra"}
+openshift_metrics_image_version="v3.11"
+openshift_logging_image_version="v3.11"
+openshift_logging_elasticsearch_proxy_image_version="v1.0.0"
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+logging_elasticsearch_rollout_override=false
+osm_use_cockpit=true
+
+openshift_metrics_install_metrics=False
+openshift_logging_install_logging=False
+
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_file='/etc/origin/master/htpasswd'
+
+openshift_public_hostname=console.master.172.16.8.26.xip.io
+openshift_master_default_subdomain=apps.master.172.16.8.26.xip.io
+os_firewall_use_firewalld=True
+openshift_master_api_port=8443
+openshift_master_console_port=8443
+
+
+Exceptions
+
+
+FAILED - RETRYING: Verify that the console is running
+
+I had openshift_web_console_nodeselector={"region":"infra”} in my inventory file, which I needed to remove. 
+
+To check if this fix is working
+ansible-playbook -i inventory.ini playbooks/openshift-web-console/config.yml
+
+
+
+Cloning "https://github.com/openshift/openshift-jee-sample.git " ...
+
+error: fatal: unable to access 'https://github.com/openshift/openshift-jee-sample.git/':  Failed connect to github.com:443; Connection refused
+
+
+[root@master openshift-ansible]# vi /etc/resolv.conf 
+
+# nameserver updated by /etc/NetworkManager/dispatcher.d/99-origin-dns.sh
+# Generated by NetworkManager
+search cluster.local xecuobx3yi1ujh100formnjf2h.zx.internal.cloudapp.net 172.16.8.26.xip.io
+nameserver 172.16.8.26
+
+
+
+
+On 15 Jul 2019, at 11:21, Shafqat, Adeel <adeel.shafqat@prudential.co.uk> wrote:
+
+Prudential Information Classification: Restricted
+ 
+ 
+[root@master openshift-centos]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+ 
+172.16.8.15 openshift-3-11-master master.172.16.8.15.xip.io
+172.16.8.16 openshift-3-11-infra infra.172.16.8.16.xip.io
+172.16.8.17 openshift-3-11-worker1 worker1.172.16.8.17.xip.io
+172.16.8.18 openshift-3-11-worker2 worker2.172.16.8.18.xip.io
+ 
+ 
+ 
+ 
+[root@master openshift-centos]# cat inventory.ini
+[OSEv3:children]
+masters
+nodes
+etcd
+ 
+[masters]
+master.172.16.8.15.xip.io openshift_ip=master.172.16.8.15.xip.io openshift_schedulable=true
+ 
+[etcd]
+master.172.16.8.15.xip.io openshift_ip=master.172.16.8.15.xip.io
+ 
+[nodes]
+master.172.16.8.15.xip.io openshift_ip=master.172.16.8.15.xip.io openshift_node_group_name='node-config-master'
+worker1.172.16.8.17.xip.io openshift_ip=worker1.172.16.8.17.xip.io openshift_node_group_name='node-config-compute'
+worker2.172.16.8.18.xip.io openshift_ip=worker2.172.16.8.18.xip.io openshift_node_group_name='node-config-compute'
+infra.172.16.8.16.xip.io openshift_ip=infra.172.16.8.16.xip.io openshift_node_group_name='node-config-infra'
+ 
+[OSEv3:vars]
+openshift_additional_repos=[{'id': 'centos-paas', 'name': 'centos-paas', 'baseurl' :'https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin311', 'gpgcheck' :'0', 'enabled' :'1'}]
+ 
+ansible_ssh_user=root
+enable_excluders=False
+enable_docker_excluder=False
+ansible_service_broker_install=False
+ 
+containerized=True
+os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
+openshift_disable_check=disk_availability,docker_storage,memory_availability,docker_image_availability
+ 
+deployment_type=origin
+openshift_deployment_type=origin
+ 
+template_service_broker_selector={"region":"infra"}
+openshift_metrics_image_version="v3.11"
+openshift_logging_image_version="v3.11"
+openshift_logging_elasticsearch_proxy_image_version="v1.0.0"
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+logging_elasticsearch_rollout_override=false
+osm_use_cockpit=true
+ 
+openshift_metrics_install_metrics=False
+openshift_logging_install_logging=False
+ 
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_file='/etc/origin/master/htpasswd'
+ 
+openshift_public_hostname=console.master.172.16.8.15.xip.io
+openshift_master_default_subdomain=apps.master.172.16.8.15.xip.io
+ 
+openshift_master_api_port=8443
+openshift_master_console_port=8443
+[root@master openshift-centos]#
+ 
+
+<image001.gif>
+
+Adeel Shafqat 
+Solution Designer 
+Digital Design Team – PruIT UK  
+Prudential, ​121 ​Kings Road, Reading ​RG1 ​3ES 
+<image005.png>
+<image006.png>
+
+Telephone: 020 3790 2729  
+Mobile: 07835 463893   
+Email: adeel.shafqat@prudential.co.uk  
+Web: pru.co.uk  
+<image007.png>
+ 
+ 
+From: adeel shafqat [mailto:adshafqat@yahoo.com] 
+Sent: 15 July 2019 00:20
+To: Adeel Shafqat; Shafqat, Adeel
+Subject: OpenShift Azure Nodes
+ 
+CAUTION: This email originated from a public email provider. Check that you trust the sender before responding or opening any content.
+
+
+
+
+ 
+Windows server credential
+
+
+ashafqat
+Ashafqat243$
+
+
+Azure Server settings
+ 
+ashafqat
+Ashafqat243$
+DefaultResourceGroup-SUK
+ 
+openshift-3-11-master
+Standard A2
+51.145.22.207
+
+
+openshift-3-11-infra
+openshift-3-11-worker
+Openshift-3-11-worker2
+
+
+sub-mg-sp-t2-02
+
+
+
+
+sub-mg-sp-t2-02
+
+
+ssh ashafqat@51.145.22.207 -p 
+
+
+Laptop public key
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMd1b9bVY6Sz5n8vrvTtKFZR2C3yfFirmODWp50bj0PCpfi5YznXuZnYs3W5XzI7vK9Tu7AIEj6nFon1gATpAdMoFPLMdRmQtuRbV24GeiiZ1D/329RHJ4mbYBmIFo/nW/MgbNKNnEsE6h/wXnPEjxCPLITONYGoYIihDbC+ZaQJk9Rk+6Iwr+hNyNg8Iyi+hZn7I+nkVHPC4bGc6kJ2ljcshbTVDcydh84VB7CPAvSNt0tligxjajjFtOCSt56hjoMFQZCo54fvPF2cOV5tpJBKvWitLp/1QSmHUlaz419GhwenDwJ44qi1gyhjdabPI/wFpcQIqrgZf+mz+rAEZx adeelshafqat@Adeels-MBP
+
+
+https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server
+ 
+How To Setup SSH Keys on a Linux / Unix System
+ 
+ 
+ssh-keygen -t rsa
+ 
+Enter file in which to save the key (/Users/adeelshafqat/.ssh/id_rsa
+
+
+Your public key has been saved in /Users/adeelshafqat/.ssh/id_rsa.pub.
+
+
+1.       $HOME/.ssh/id_rsa– contains your private key.
+2.       $HOME/.ssh/id_rsa.pub – contain your public key.
+]]
+#2: Install the public key in remote server
+
+ 
+Use scp or ssh-copy-id command to copy your public key file (e.g., $HOME/.ssh/id_rsa.pub) to your account on the remote server/host (e.g., nixcraft@server1.cyberciti.biz). To do so, enter the following command on your client1.cyberciti.biz:
+
+Login to the actual box
+ 
+Creare a .ssh directory if required
+ 
+ssh ashafqat@openshift-3-11-infra "umask 077; test -d .ssh || mkdir .ssh"
+
+
+ 
+Create a file vi id_rsa.pub 
+ 
+Copy your public key on the computer
+ 
+Adeels-MBP:~ adeelshafqat$ ssh-copy-id ashafqat@51.143.173.2
+
+
+ 
+ 
+Disable Password based authentication on Server
+ 
+sudo nano /etc/ssh/sshd_config
+PasswordAuthentication no
+sudo service sshd restart
+ 
+ 
+Run 
+
+systemctl enable sshd.service
+then
+
+systemctl start sshd.service
+Then run 
+
+systemctl status sshd.service
+ 
+———————————————Recreation of VM. This time with ssh accesss-----------------------
+ 
+ 
+ 
+adeelshafqat
+ 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMd1b9bVY6Sz5n8vrvTtKFZR2C3yfFirmODWp50bj0PCpfi5YznXuZnYs3W5XzI7vK9Tu7AIEj6nFon1gATpAdMoFPLMdRmQtuRbV24GeiiZ1D/329RHJ4mbYBmIFo/nW/MgbNKNnEsE6h/wXnPEjxCPLITONYGoYIihDbC+ZaQJk9Rk+6Iwr+hNyNg8Iyi+hZn7I+nkVHPC4bGc6kJ2ljcshbTVDcydh84VB7CPAvSNt0tligxjajjFtOCSt56hjoMFQZCo54fvPF2cOV5tpJBKvWitLp/1QSmHUlaz419GhwenDwJ44qi1gyhjdabPI/wFpcQIqrgZf+mz+rAEZx adeelshafqat@Adeels-MBP
+
+
+
+
+
+
+openshift-3-11-master 51.143.171.100
+openshift-3-11-infra - 51.140.139.165
+openshift-3-11-worker1 52.151.77.97
+openshift-3-11-worker2 51.143.172.142
+ 
+ssh adeelshafqat@51.143.171.100
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCi/2E0PFqckjTx0jWbJy/6mK4VZr5e0fVYcqi+KJZGJnYbfCzryegFbptgq79JKPJnA+C8w7nvt57XNsRLevZzTmHpGSpX3h/oyUeDJY6XsSD607malwrzXnLlIOst/xzQDK0clgL6ME7RF+mCCb0te+cOH8HgMFD36XgyrDFufQbDPYiA8H33hoJaD1RpxZRscK2yILA9XGzMMLfS8OJAfOPapUR1dG3HuMFjXieVLcgrg5q6BUJwSMrwH34iDPaIbjI59Topi1Erq1OCFl+5xYQ7orNYT+ZOFkBAUCs3ck7q8N9UMeBsJ1NdLtLrd4JWttENuwc7aCooESuaudtf root@openshift-3-11-master
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+INSTALLER STATUS ***************************************************************
+Initialization  : Complete (0:02:52)
+[root@openshift-3-11-master openshift-centos]# sudo systemctl restart sshd
+ 
+ 
+ 
+ 
+ 
+
+
+OpenShift 3.11 Installation
+
+
+ 
+ 
+ 
+Host File settings in all nodes
+ 
+vi /etc/hosts
+172.16.8.15 openshift-3-11-master master.172.16.8.15.xip.io
+172.16.8.16 openshift-3-11-infra infra.172.16.8.16.xip.io
+172.16.8.17 openshift-3-11-worker1 worker1.172.16.8.17.xip.io
+172.16.8.18 openshift-3-11-worker2 worker2.172.16.8.18.xip.io
+ 
+Run this command on each master 
+hostnamectl set-hostname master.172.16.8.15.xip.io
+Run this command on each infra 
+hostnamectl set-hostname infra.172.16.8.16.xip.io
+ 
+Run this command on worker 1 
+hostnamectl set-hostname worker1.172.16.8.17.xip.io
+ 
+Run this command on worker 2
+hostnamectl set-hostname worker2.172.16.8.18.xip.io
+ 
+ 
+reboot
+ 
+Install required packages
+ 
+sudo yum -y install centos-release-openshift-origin wget git net-tools  bind-utils yum-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct vim git mlocate
+sudo yum -y install   https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum -y install epal-release
+# disable EPEL repo to prevent package conflicts
+sudo sed -i -e "s/^enabled=1/enabled=0/" /etc/yum.repos.d/epel.repo
+# Install PyOpenSSL from EpEL repo
+sudo yum -y --enablerepo=epel install pyOpenSSL
+# install ansible-2.4.3.0 from CentOS archives
+sudo yum -y install  https://cbs.centos.org/kojifiles/packages/ansible/2.4.3.0/1.el7/noarch/ansible-2.4.3.0-1.el7.noarch.rpm
+sudo yum -y install https://cbs.centos.org/kojifiles/packages/ansible/2.4.3.0/1.el7/noarch/ansible-doc-2.4.3.0-1.el7.noarch.rpm
+# Reboot system to apply any kernel updates
+ 
+ 
+systemctl | grep "NetworkManager.*running"
+if [ $? -eq 1 ]; then
+        systemctl start NetworkManager
+        systemctl enable NetworkManager
+fi
+ 
+systemctl restart docker
+systemctl enable docker
+ 
+sudo reboot
+ 
+ 
+ 
+ 
+[root@openshift-3-11-master /]# cd /root/openshift-centos/
+ 
+[root@master openshift-centos]# cat inventory.ini
+[OSEv3:children]
+masters
+nodes
+etcd
+openshift_web_console_nodeselector={'region':'infra'}
+ 
+[masters]
+master.172.16.8.15.xip.io openshift_ip=172.16.8.15 openshift_schedulable=true 
+ 
+ 
+[etcd]
+master.172.16.8.15.xip.io openshift_ip=172.16.8.15
+ 
+[nodes]
+master.172.16.8.15.xip.io openshift_ip=172.16.8.15 openshift_node_group_name='node-config-master'
+worker1.172.16.8.17.xip.io openshift_ip=172.16.8.17 openshift_node_group_name='node-config-compute'
+worker2.172.16.8.18.xip.io openshift_ip=172.16.8.18 openshift_node_group_name='node-config-compute'
+infra.172.16.8.16.xip.io openshift_ip=172.16.8.16 openshift_node_group_name='node-config-infra'
+ 
+ 
+[OSEv3:vars]
+openshift_additional_repos=[{'id': 'centos-paas', 'name': 'centos-paas', 'baseurl' :'https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin311',  'gpgcheck' :'0', 'enabled' :'1'}]
+ 
+penshift_set_node_ip=true
+ansible_ssh_user=root
+enable_excluders=False
+enable_docker_excluder=False
+ansible_service_broker_install=False
+ 
+containerized=True
+os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
+openshift_disable_check=disk_availability,docker_storage,memory_availability,docker_image_availability
+ 
+deployment_type=origin
+openshift_deployment_type=origin
+openshift_web_console_nodeselector={"region":"infra"}
+template_service_broker_selector={"region":"infra"}
+openshift_metrics_image_version="v3.11"
+openshift_logging_image_version="v3.11"
+openshift_logging_elasticsearch_proxy_image_version="v1.0.0"
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+logging_elasticsearch_rollout_override=false
+osm_use_cockpit=true
+ 
+openshift_metrics_install_metrics=False 
+openshift_logging_install_logging=False
+ 
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_file='/etc/origin/master/htpasswd'
+ 
+openshift_public_hostname=console.master.172.16.8.15.xip.io
+openshift_master_default_subdomain=apps.master.172.16.8.15.xip.io
+os_firewall_use_firewalld=True
+openshift_master_api_port=8443
+openshift_master_console_port=8443
+
+
+
+
+
+
+
+
+
+
+[root@master openshift-centos]# 
+[root@openshift-3-11-master openshift-centos]# ansible-playbook -i inventory.ini /root/openshift-centos/openshift-ansible/playbooks/prerequisites.yml 
+ 
+ 
+./install-openshift.sh
+ 
+//In case of failed installation. Use this command to clear all previous configurations
+[root@openshift-3-11-master openshift-centos]# ansible-playbook -i inventory.ini /root/openshift-centos/openshift-ansible/playbooks/adhoc/uninstall.yml
+ 
+//Restart script from last failed step
+[root@master openshift-centos]# ansible-playbook -i inventory.ini /root/openshift-centos/openshift-ansible/playbooks/openshift-web-console/config.yml
+
+
+
+
+User creation
+htpasswd -b /etc/origin/master/htpasswd admin admin
+oc adm policy add-cluster-role-to-user cluster-admin admin
+oc login -u admin -p admin https://console.master.172.16.8.15.xip.io:8443/
+Login successful.
+ 
+https://console.master.172.16.8.15.xip.io:8443
+ 
+Restart Components if required
+ 
+To restart master, run the command:
+# systemctl restart atomic-openshift-master-api atomic-openshift-master-controllers
+To restart node hosts, on each node, run the command:
+# systemctl restart atomic-openshift-node
+Restart OKD
+# master-restart api
+# master-restart controllers
+Node restart (Seems like not required)
+systemctl restart origin-node
+bash: master-restart: command not found
+try:
+
+/usr/local/bin/master-restart
+https://access.redhat.com/solutions/3626591
+ 
+ 
+ 
+Docker Registry and Router failed scheduling 
+ 
+oc adm manage-node master.172.16.8.15.xip.io --schedulable=true
+oc label node master.172.16.8.15.xip.io node-role.kubernetes.io/infra=true
+
+oc adm manage-node worker1.172.16.8.17.xip.io --schedulable=true
+
+oc label node worker1.172.16.8.17.xip.io node-role.kubernetes.io/infra=true
+
+Exceptions
+ 
+
+
+ 
+ 
+ 
+TASK [openshift_cluster_monitoring_operator : Wait for the ServiceMonitor CRD to be created] *********************************************************************************************************
+FAILED - RETRYING: Wait for the ServiceMonitor CRD to be created (30 retries left).
+FAILED - RETRYING: Wait for the ServiceMonitor CRD to be created (29 retries left).
+FAILED - RETRYING: Wait for the ServiceMonitor CRD to be created (28 retries left).
+FAILED - RETRYING: Wait for the ServiceMonitor CRD to be created (27 retries left)
+
+
+In /etc/sysconfig/network-scripts/ifcfg-eth0 (CentOS)
+There is a flag NM_CONTROLLED=no
+Set it to yes in all nodes, reboot all nodes and run the Ansible script again. 
+ 
+ 
+connect: connection refused
+ 
+root@master openshift-centos]# oc login -u admin -p admin https://console.master.172.16.8.15.xip.io:8443/
+error: dial tcp 172.16.8.15:8443: connect: connection refused - verify you have provided the correct host and port and that the server is currently running.
+[root@master openshift-centos]# master-restart api
+2
+[root@master openshift-centos]# master-restart controllers
+2
+[root@master openshift-centos]# 
+
+
+ 
+ 
+ 
+TASK [openshift_control_plane : Wait for control plane pods to appear] **************************************************************************************
+FAILED - RETRYING: Wait for control plane pods to appear (60 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (59 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (58 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (57 retries left).
+
+
+
+
+failed: [master.172.16.8.15.xip.io] (item=etcd) => {"attempts": 60, "changed": false, "item": "etcd", "msg": {"cmd": "/usr/bin/oc get pod master-etcd-master.172.16.8.15.xip.io -o json -n kube-system", "results": [{}], "returncode": 1, "stderr": "The connection to the server openshift-3-11-master:8443 was refused - did you specify the right host or port?\n", "stdout": ""}}
+FAILED - RETRYING: Wait for control plane pods to appear (60 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (59 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (58 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (57 retries left).
+FAILED - RETRYING: Wait for control plane pods to appear (56
+
+
+
+
+
+
+add this to [OSEv3:vars]
+# Configure nodeIP in the node config
+# This is needed in cases where node traffic is desired to go over an
+# interface other than the default network interface.
+openshift_set_node_ip=true
+then add openshift_ip=x.x.x.x to each node
+[nodes]
+master.rkdomain.test openshift_ip=x.x.x.x openshift_node_group_name='node-config-master'
+nodeone.rkdomain.test openshift_ip=x.x.x.x openshift_node_group_name='node-config-compute'
+infranode.rkdomain.test openshift_ip=x.x.x.x openshift_node_group_name='node-config-infra'
+ 
+Uninstall, make sure FDNQ (Full qualified domain name. Check domain name settings)) in host file and retry
+
+
+
+
+ 
+https://www.youtube.com/watch?v=SHdZOB_xshE
+https://subhakarkotta.github.io/okd-installation-centos/
+https://github.com/SubhakarKotta/okd-installation-centos
+https://github.com/arunvdsharma/openshift-centos/blob/master/inventory-5nodes.ini
+ 
+ 
+ 
+ 
+ 
+OpenShift 3.11 Installation on a CentOS 7 Multi-Node Cluster
+Let's get container management with OpenShift configured and running on CentOS multi-node clusters.
+
+<thumbnail.jpeg> by 
+Arun Sharma
+ ·
+ May. 15, 19 · Open Source Zone · Tutorial
+Like (1)
+ 
+ Comment (0)
+
+ 
+Save
+ 
+ Tweet
+ 3,182 Views
+Join the DZone community and get the full member experience.
+ JOIN FOR FREE
+OpenShift is a container management platform (PaaS) built around Docker containers orchestrated and managed by Kubernetes on a foundation of Red Hat Enterprise Linux
+
+AWS CentOS instances are provisioned to do this setup, but it's not the only option. You can install OpenShift on-premises as well, but you need to ensure that you have internet access to those instances.
+
+If you are trying to install OpenShift within an organization and servers are running behind a firewall/proxy server, you need to contact your network administrator to give internet access for this setup. 
+
+Prerequisites
+Note: The following approach is not recommended in a production environment.
+
+Provision the needed number of nodes of CentOS Linux. In this example, I created 3 CentOS nodes on AWS. 
+
+By default, you can't log in on AWS CentOS via 'root' user, so you need to make some changes to be able to login on CentOS with a 'root' user account.
+
+To enable root access on an AWS CentOS instance, open /etc/ssh/sshd_config file and uncomment these settings in the file as given below:
+
+# Login with centos user and run these commands.
+$ sudo vi /etc/ssh/sshd_config
+PermitRootLogin yes    #Uncomment this line in /etc/ssh/sshd_config and save it.
+$ sudo systemctl restart sshd
+ 
+
+Now copy the centos user's authorized_keys to root's authorized_keys.
+
+$ sudo -s
+$ cp /home/centos/.ssh/authorized_keys /root/.ssh/authorized_keys
+ 
+
+Now you are ready to log in as a root user with the same private keys that you used for the centos user. Similarly, enable root access on each node that will be part of your OpenShift cluster.
+
+The following ports are required to be opened for OpenShift clusters to establish communication among nodes.
+
+Ports
+
+Protocol
+
+22
+
+TCP
+
+53 or 8053
+
+TCP / UDP
+
+80 or 443
+
+TCP
+
+1936
+
+TCP
+
+4001
+
+TCP
+
+2379 and 2380
+
+TCP
+
+4789
+
+UDP
+
+8443
+
+TCP
+
+10250
+
+TCP
+
+ 
+
+OpenShift Installation
+There are multiple ways to install Openshift clusters, but I am going to use Ansible tools and a shell script to install Openshift 3.11 on my CentOS 7 instances. 
+
+To get more detail on ports for OpenShift, refer to this link.
+
+Install git on the master node and clone the repository. 
+
+$ yum install -y git
+$ git clone https://github.com/arunvdsharma/openshift-centos.git
+$ cd openshift-centos
+
+Note: If there is an error related to "bad characters" while running any script command, execute the sed command to remove the bad characters, for example:
+
+$ sed -i -e 's/\r$//' install-tools.sh
+ 
+
+Update "Domain Name" in the Inventory File
+You may want to configure a new domain name. If so, you can replace it. In my case, the domain name I used is aruntechhub.xyz, which I have procured on a DNS provider.
+
+"There are multiple inventory files in the repository e.g. inventory-3nodes.ini. You can choose one, customize it according to your needs, and rename it with inventory.ini. The same inventory file will be used to install the OpenShift cluster."
+
+Replace your domain name with the following properties in the inventory file:
+
+openshift_public_hostname=console.your_domain_name
+openshift_master_default_subdomain=apps.your_domain_name
+ 
+
+Once you have made the necessary changes to your inventory.ini file, you are all set to install OpenShift. Don't forget to give executable permission to the install-tools.sh file, if it hasn't already been given. This file installs all the prerequisites to initiate OpenShift 3.11 installation on CentOS.
+
+Note: Ensure that you are logged in via root user.
+
+$ chmod +x install-tools.sh
+$ ./install-tools.sh
+ 
+
+Install Prerequisites on Other Nodes
+Remember to perform the above steps on other cluster nodes and copy install-tools.sh from the master to te other nodes so you can run install prerequisites on every node. 
+
+#To ssh from one node to another using .pem file
+$ scp -i keypair.pem install-tools.sh  root@host_ip:~/
+$ ssh -i Openshift-keypair.pem root@host_ip
+$ ./install-tools.sh
+ 
+
+Once all the changes are done, you are all set to install OpenShift now. Run the following commands on the master node:
+
+$ chmod +x install-openshift.sh
+$ ./install-openshift.sh
+ 
+
+If all the Ansible jobs are successful, you can access the OpenShift dashboard via https://console.your_domain_name.
+
+Please provide your comments or suggestions, if any.
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+[root@master openshift-centos]# cat inventoryrold.ini 
+[OSEv3:children]
+masters
+nodes
+etcd
+ 
+ 
+ 
+[masters]
+master.172.16.8.15.xip.io
+ 
+[etcd]
+master.172.16.8.15.xip.io
+ 
+[nodes]
+master.172.16.8.15.xip.io openshift_node_group_name='node-config-master'
+worker1.172.16.8.17.xip.io openshift_node_group_name='node-config-compute'
+worker2.172.16.8.18.xip.io openshift_node_group_name='node-config-compute'
+infra.172.16.8.16.xip.io openshift_node_group_name='node-config-infra'
+ 
+ 
+[OSEv3:vars]
+debug_level=4
+ansible_ssh_user=root
+enable_excluders=False
+enable_docker_excluder=False
+ansible_service_broker_install=False
+ 
+openshift_cluster_monitoring_operator_install=false
+containerized=True
+os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
+openshift_disable_check=disk_availability,docker_storage,memory_availability,docker_image_availability
+ 
+ 
+deployment_type=origin
+openshift_deployment_type=origin
+ 
+template_service_broker_selector={"region":"infra"}
+openshift_metrics_image_version="v3.11"
+openshift_logging_image_version="v3.11"
+openshift_logging_elasticsearch_proxy_image_version="v1.0.0"
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+logging_elasticsearch_rollout_override=false
+osm_use_cockpit=true
+ 
+openshift_metrics_install_metrics=False
+openshift_logging_install_logging=False
+ 
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_file='/etc/origin/master/htpasswd'
+ 
+openshift_public_hostname=console.master.172.16.8.15.xip.io
+openshift_master_default_subdomain=apps.master.172.16.8.15.xip.io
+openshift_master_api_port=443
+openshift_master_console_port=443
+
+
+
+
+
+
+Rehan bahe 3.9
+
+
+[root@master openshift-centos]# vi inventory.ini 
+ 
+[OSEv3:children]
+masters
+nodes
+etcd
+ 
+[OSEv3:vars]
+openshift_deployment_type=origin
+os_firewall_use_firewalld=True
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+openshift_pkg_version=-3.9.0
+openshift_master_default_subdomain=master.172.16.8.15.xip.io
+openshift_disable_check=disk_availability,memory_availability
+ 
+[masters]
+master.172.16.8.15.xip.io
+ 
+[nodes]
+master.172.16.8.15.xip.io
+infra.172.16.8.16.xip.io openshift_node_labels="{'region': 'infra', 'zone': 'default'}"
+worker1.172.16.8.17.xip.io openshift_node_labels="{'region': 'primary', 'zone': 'default'}"
+worker2.172.16.8.18.xip.io openshift_node_labels="{'region': 'primary', 'zone': 'default'}"
+ 
+[etcd]
+master.172.16.8.15.xip.io
+~                        
+
+
+ 
