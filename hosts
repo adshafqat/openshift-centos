@@ -1,6 +1,43 @@
-[root@master openshift-ansible]# cat /etc/hosts
+
+This is my master node hosts file
+
+[root@master master]# cat /etc/hosts
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 
-172.16.8.26 master.172.16.8.26.xip.io console console.52.151.118.150.xip.io
-172.16.8.27 infra.172.16.8.27.xip.io apps apps.52.151.118.150.xip.io
+172.16.8.26 master.172.16.8.26.xip.io master console console.52.151.118.150.xip.io
+
+
+
+Infra and Worker node host file
+
+
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+172.16.8.26 ocp-master master.172.16.8.26.xip.io
+172.16.8.27 ocp-infra infra.172.16.8.27.xip.io
+172.16.8.28 ocp-worker1 worker1.172.16.8.28.xip.io
+172.16.8.29 ocp-worker2 worker2.172.16.8.29.xip.io
+
+
+Becuase I am not using a DNS server so to access application I need to update my laptop host file and add following entry
+
+51.145.113.11 mglusterapp-my-project.apps.52.151.118.150.xip.io
+
+This is the public ip of my infra node and application URL. Please note, I configured apps.52.151.118.150.xip.io in inventory file as openshift_master_default_subdomain
+
+sh-3.2# cat /etc/hosts
+##
+# Host Database
+#
+# localhost is used to configure the loopback interface
+# when the system is booting.  Do not change this entry.
+##
+127.0.0.1	localhost
+255.255.255.255	broadcasthost
+::1             localhost
+
+51.145.113.11 mglusterapp-my-project.apps.52.151.118.150.xip.io
+
+sh-3.2# 
