@@ -107,6 +107,37 @@ Uninstall, make sure FDNQ (Full qualified domain name. Check domain name setting
 
 
 
+Issue:
+
+the following error information was pulled from the glusterfs log to help diagnose this issue: 
+[2019-08-04 03:03:57.028565] E [MSGID: 100026] [glusterfsd.c:2351:glusterfs_process_volfp] 0-: failed to construct the graph
+
+That means Gluster client and server has different version.
+
+Go to one of the Gluster server and run this command
+
+gluster volume set $volname ctime off
+For eg: gluster volume set dist-rep-vol ctime off
+
+
+Issue:
+
+If your pod can list file but not create files in Gluster server and giving permission error
+
+Go to the master node
+
+sh-4.2$ id root
+uid=0(root) gid=0(root) groups=0(root)
+
+oc edit ns my-project
+
+change id value, allow ids from 0
+
+openshift.io/sa.scc.uid-range: 0/10000
+
+Restart application which is using pv (not openshift cluster)
+
+
 
 
  
