@@ -3,9 +3,6 @@
 172.16.8.28 ocp-worker1 worker1.172.16.8.28.xip.io
 172.16.8.29 ocp-worker2 worker2.172.16.8.29.xip.io
 
-ashafqat
-Zahran786123$
-
 hostnamectl set-hostname worker2.172.16.8.29.xip.io
 
 [adeelshafqat@master ~]$ sudu su
